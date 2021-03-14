@@ -116,7 +116,7 @@ startButton.addEventListener("click", async () => {
   setTimeout(() => {
     Tone.Transport.start();
   }, 1000);
-  startButton.style.display = none;
+  startButton.style.display = "none";
 });
 
 // make some effects nodes
