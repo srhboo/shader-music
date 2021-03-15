@@ -1,4 +1,3 @@
-import "regenerator-runtime/runtime";
 let musicShader;
 // these variables keep track of opacity of visual elements (correspond to audio)
 let beat = 0;

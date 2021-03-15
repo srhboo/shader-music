@@ -1,17 +1,10 @@
 {
   "name": "shader-music",
   "version": "1.0.0",
-  "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "build": "parcel build index.html",
-    "start": "parcel serve index.html"
+    "start": "live-server"
   },
-  "dependencies": {
-    "p5": "^1.2.0",
-    "tone": "^14.7.77"
-  },
-  "devDependencies": {
-    "parcel-bundler": "1.12.3"
-  }
+  "dependencies": {},
+  "devDependencies": {}
 }
