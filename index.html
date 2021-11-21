@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>shader + music</title>
+    <title>shaders</title>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" type="text/css" href="styles.css" />
@@ -10,7 +10,12 @@
   </head>
   <body>
     <div id="curtain" class="fade-in">end</div>
-    <button type="button" id="start-audio">play</button>
+    <div id="intro">
+      click to play / pause, press f to fullscreen
+      <button type="button" id="start-audio">start</button>
+    </div>
+    <div id="paused-screen">paused... click to continue...</div>
+
     <script src="sketch.js"></script>
   </body>
 </html>

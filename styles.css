@@ -6,9 +6,10 @@ body {
 canvas {
   display: block;
 }
-#start-audio {
+#intro {
   position: absolute;
-  font-size: 3rem;
+  font-size: 1rem;
+  font-family: "Courier New", Courier, monospace;
   background-color: black;
   border: none;
   padding: 1rem 2rem;
@@ -16,9 +17,30 @@ canvas {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
-
+#start-audio {
+  cursor: pointer;
+  font-family: "Courier New", Courier, monospace;
+  border: 1px solid white;
+  background-color: black;
+  color: white;
+  margin-top: 1rem;
+}
+#paused-screen {
+  width: 100vw;
+  height: 100vh;
+  opacity: 0.7;
+  background-color: black;
+  position: absolute;
+  color: white;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  display: none;
+}
 #curtain {
   width: 100vw;
   height: 100vh;

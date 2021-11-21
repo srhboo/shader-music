@@ -10,8 +10,10 @@ let perc2c = 0;
 let sibeat = 0;
 
 // these variables keep track of the zoom transition
-let transition1 = 0;
+let transition1 = 1;
 let transition1State = "pre";
+
+let playerState = "intro"; // intro / play / pause
 
 function preload() {
   musicShader = loadShader("shader.vert", "shader.frag");
@@ -21,6 +23,13 @@ function setup() {
   // shaders require WEBGL mode to work
   createCanvas(windowWidth, windowHeight, WEBGL);
   noStroke();
+}
+
+function keyPressed() {
+  if (keyCode === 70) {
+    let fs = fullscreen();
+    fullscreen(!fs);
+  }
 }
 
 function draw() {
@@ -102,31 +111,56 @@ function triggerTransition1() {
 // the end curtain
 let curtain = document.getElementById("curtain");
 
+// pause screen
+let pauseScreen = document.getElementById("paused-screen");
+
 function triggerEnd() {
   curtain.style.display = "flex";
 }
 
+function mousePressed() {
+  if (playerState === "pause") {
+    playTone();
+  } else if (playerState === "play") {
+    pauseTone();
+  }
+}
+
+function pauseTone() {
+  playerState = "pause";
+  Tone.Transport.pause();
+  pauseScreen.style.display = "flex";
+}
+
+function playTone() {
+  playerState = "play";
+  Tone.Transport.start();
+  pauseScreen.style.display = "none";
+}
+
 // tone js
 const startButton = document.getElementById("start-audio");
+const introView = document.getElementById("intro");
 
 startButton.addEventListener("click", async () => {
-  startButton.style.display = "none";
+  introView.style.display = "none";
   await Tone.start();
   setTimeout(() => {
     Tone.Transport.start();
+    // Tone.Transport.loop = true;
+    playerState = "play";
   }, 1000);
-  startButton.style.display = "none";
 });
 
 // make some effects nodes
 const feedbackDelay = new Tone.FeedbackDelay("4n", 0.8);
 const dist = new Tone.Distortion(0.3);
-const reverb1 = new Tone.Reverb({ decay: 100, wet: 0.7 });
-const reverb2 = new Tone.Reverb({ decay: 100, wet: 0.8 });
+// const reverb1 = new Tone.Reverb({ decay: 7, wet: 0.7 });
+const reverb2 = new Tone.Reverb({ decay: 10, wet: 0.8 });
 
 // plays in first half
 const synthA = new Tone.PolySynth(Tone.FMSynth).chain(
-  reverb1,
+  reverb2,
   Tone.Destination
 );
 synthA.set({
@@ -294,9 +328,9 @@ const partD = new Tone.Part(
     Tone.Draw.schedule(() => {
       sibeat = 1;
       const bar = parseInt(Tone.Transport.position.split(":")[0]);
-      if (bar > 62) {
-        triggerEnd();
-      }
+      // if (bar > 62) {
+      //   triggerEnd();
+      // }
     }, time);
   },
   [{ time: "0:0:0", note: "A4", velocity: 0.6 }]
