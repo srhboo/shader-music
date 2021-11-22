@@ -10,7 +10,7 @@ let perc2c = 0;
 let sibeat = 0;
 
 // these variables keep track of the zoom transition
-let transition1 = 1;
+let transition1 = 0;
 let transition1State = "pre";
 
 let playerState = "intro"; // intro / play / pause
@@ -25,6 +25,33 @@ function setup() {
   noStroke();
 }
 
+function isHighDensity() {
+  return (
+    (window.matchMedia &&
+      (window.matchMedia(
+        "only screen and (min-resolution: 124dpi), only screen and (min-resolution: 1.3dppx), only screen and (min-resolution: 48.8dpcm)"
+      ).matches ||
+        window.matchMedia(
+          "only screen and (-webkit-min-device-pixel-ratio: 1.3), only screen and (-o-min-device-pixel-ratio: 2.6/2), only screen and (min--moz-device-pixel-ratio: 1.3), only screen and (min-device-pixel-ratio: 1.3)"
+        ).matches)) ||
+    (window.devicePixelRatio && window.devicePixelRatio > 1.3)
+  );
+}
+
+function isRetina() {
+  return (
+    ((window.matchMedia &&
+      (window.matchMedia(
+        "only screen and (min-resolution: 192dpi), only screen and (min-resolution: 2dppx), only screen and (min-resolution: 75.6dpcm)"
+      ).matches ||
+        window.matchMedia(
+          "only screen and (-webkit-min-device-pixel-ratio: 2), only screen and (-o-min-device-pixel-ratio: 2/1), only screen and (min--moz-device-pixel-ratio: 2), only screen and (min-device-pixel-ratio: 2)"
+        ).matches)) ||
+      (window.devicePixelRatio && window.devicePixelRatio >= 2)) &&
+    /(iPad|iPhone|iPod)/g.test(navigator.userAgent)
+  );
+}
+
 function keyPressed() {
   if (keyCode === 70) {
     let fs = fullscreen();
@@ -37,7 +64,7 @@ function draw() {
   shader(musicShader);
 
   musicShader.setUniform("u_time", frameCount * 0.01);
-  musicShader.setUniform("u_resolution", [width, height]);
+  musicShader.setUniform("u_resolution", [windowWidth, windowHeight]);
 
   // bass note / circle
   musicShader.setUniform("u_beat", beat);
@@ -88,14 +115,20 @@ function draw() {
 
   if (transition1State === "active") {
     if (transition1 >= 1) {
-      transition1On = "complete";
+      transition1State = "complete";
     } else {
-      if (transition1 < 0.1 || transition1 >= 0.8) {
-        // this is the zoom position passed to the shader
-        transition1 += 0.001;
-      } else if (transition1 >= 0.1 && transition1 < 0.9) {
-        transition1 += 0.005;
-      }
+      // this is the zoom position passed to the shader
+      transition1 += 0.0005;
+    }
+  } else if (transition1State === "reverse") {
+    if (transition1 <= 0) {
+      transition1State = "pre";
+      setTimeout(() => {
+        Tone.Transport.seconds = 0;
+      }, 5000);
+    } else {
+      // this is the zoom position passed to the shader
+      transition1 -= 0.0005;
     }
   }
 }
@@ -108,6 +141,10 @@ function triggerTransition1() {
   transition1State = "active";
 }
 
+function triggerTransition1Reverse() {
+  transition1State = "reverse";
+}
+
 // the end curtain
 let curtain = document.getElementById("curtain");
 
@@ -115,7 +152,13 @@ let curtain = document.getElementById("curtain");
 let pauseScreen = document.getElementById("paused-screen");
 
 function triggerEnd() {
-  curtain.style.display = "flex";
+  // curtain.style.display = "flex";
+  // randomize notes and sequence
+}
+function triggerReverse() {
+  triggerTransition1Reverse();
+  part.start(0);
+  console.log(part.progress);
 }
 
 function mousePressed() {
@@ -155,10 +198,9 @@ startButton.addEventListener("click", async () => {
 // make some effects nodes
 const feedbackDelay = new Tone.FeedbackDelay("4n", 0.8);
 const dist = new Tone.Distortion(0.3);
-// const reverb1 = new Tone.Reverb({ decay: 7, wet: 0.7 });
 const reverb2 = new Tone.Reverb({ decay: 10, wet: 0.8 });
 
-// plays in first half
+// plays in first half bass
 const synthA = new Tone.PolySynth(Tone.FMSynth).chain(
   reverb2,
   Tone.Destination
@@ -220,7 +262,7 @@ const duoSynth = new Tone.DuoSynth({
       attack: 50,
       decay: 0,
       sustain: 1,
-      release: 300,
+      release: 500,
     },
   },
   voice1: {
@@ -238,12 +280,30 @@ const duoSynth = new Tone.DuoSynth({
       attack: 20,
       decay: 0,
       sustain: 1,
-      release: 500,
+      release: 600,
     },
   },
 }).chain(reverb2);
 
 // bass-y
+
+// variation options
+const bassOptions = [
+  [
+    { time: "0:0", note: "E3", velocity: 1.0 },
+    { time: "0:1", note: "E3", velocity: 0.6 },
+  ],
+  [
+    { time: "0:0", note: "A3", velocity: 1.0 },
+    { time: "0:2", note: "A3", velocity: 0.6 },
+    { time: "0:4", note: "A3", velocity: 0.4 },
+  ],
+  [
+    { time: "0:0", note: "D4", velocity: 1.0 },
+    { time: "0:1", note: "D4", velocity: 0.6 },
+  ],
+];
+const bassOptionProbabilities = [0.7, 0.3];
 const part = new Tone.Part(
   (time, value) => {
     synthA.triggerAttackRelease(value.note, "16n", time, value.velocity);
@@ -252,7 +312,7 @@ const part = new Tone.Part(
     Tone.Draw.schedule(() => {
       beat = 1;
       const bar = parseInt(Tone.Transport.position.split(":")[0]);
-      if (bar > 30 && transition1State === "pre") {
+      if (bar > 30 && bar < 64 && transition1State === "pre") {
         // zoom out when near the end of the half
         triggerTransition1();
       }
@@ -267,6 +327,46 @@ part.loop = 32;
 part.probability = 0.7;
 part.humanize = true;
 part.start(0);
+
+const partBOptions = [
+  [
+    { time: "0:0:0", note: "B3", velocity: 0.6 },
+    { time: "0:0:2", note: "A4", velocity: 0.3 },
+    { time: "0:0:3", note: "B4", velocity: 0.5 },
+    { time: "0:1", note: "E#4", velocity: 0.6 },
+    { time: "0:2", note: "B4", velocity: 0.4 },
+    { time: "0:3:1", note: "A4", velocity: 0.4 },
+    { time: "0:3:2", note: "F#4", velocity: 0.6 },
+  ],
+  [
+    { time: "0:0:1", note: "B4", velocity: 0.6 },
+    { time: "0:0:2", note: "A4", velocity: 0.3 },
+    { time: "0:0:4", note: "E#4", velocity: 0.5 },
+    { time: "0:1:2", note: "B4", velocity: 0.6 },
+    { time: "0:2:3", note: "B3", velocity: 0.4 },
+    { time: "0:3:1", note: "F#4", velocity: 0.4 },
+    { time: "0:3:3", note: "A4", velocity: 0.6 },
+  ],
+  [
+    { time: "0:0:1", note: "A3", velocity: 0.6 },
+    { time: "0:0:2", note: "A4", velocity: 0.3 },
+    { time: "0:0:4", note: "A5", velocity: 0.2 },
+    { time: "0:1:2", note: "A2", velocity: 0.8 },
+    { time: "0:2:3", note: "A3", velocity: 0.4 },
+    { time: "0:3:1", note: "A4", velocity: 0.4 },
+    { time: "0:3:3", note: "A2", velocity: 0.6 },
+  ],
+  [
+    { time: "0:0:1", note: "D3", velocity: 0.6 },
+    { time: "0:0:2", note: "D4", velocity: 0.3 },
+    { time: "0:0:4", note: "D5", velocity: 0.2 },
+    { time: "0:1:2", note: "D2", velocity: 0.8 },
+    { time: "0:2:3", note: "D3", velocity: 0.4 },
+    { time: "0:3:1", note: "D4", velocity: 0.4 },
+    { time: "0:3:3", note: "D2", velocity: 0.6 },
+  ],
+];
+const partBOptionProbabilities = [0.5, 0.5, 0.3];
 
 const partB = new Tone.Part(
   (time, value) => {
@@ -284,7 +384,7 @@ const partB = new Tone.Part(
   ]
 );
 partB.loop = 32;
-partB.probability = 0.5;
+partB.probability = 0.3;
 partB.humanize = true;
 partB.start(0);
 
@@ -292,7 +392,6 @@ const partC = new Tone.Part(
   (time, value) => {
     // the value is an object which contains both the note and the velocity
     noiseSynth.triggerAttackRelease("16n", time, value.velocity);
-
     Tone.Draw.schedule(() => {
       if (value.note === "C2") {
         perc1 = 1;
@@ -322,20 +421,22 @@ partC.loop = 32;
 partC.probability = 0.3;
 partC.start("32m"); //
 
+const partDOptions = [[{ time: "0:0:0", note: "A4", velocity: 0.6 }]];
+
 const partD = new Tone.Part(
   (time, value) => {
     duoSynth.triggerAttackRelease(value.note, "1m", time, value.velocity);
+    const bar = parseInt(Tone.Transport.position.split(":")[0]);
+    if (bar > 62) {
+      triggerReverse();
+    }
     Tone.Draw.schedule(() => {
       sibeat = 1;
-      const bar = parseInt(Tone.Transport.position.split(":")[0]);
-      // if (bar > 62) {
-      //   triggerEnd();
-      // }
     }, time);
   },
-  [{ time: "0:0:0", note: "A4", velocity: 0.6 }]
+  [{ time: "0:0:0", note: "C3", velocity: 1.0 }]
 );
-partD.loop = 32;
+partD.loop = 56;
 partD.probability = 0.2;
 partD.humanize = true;
 partD.start("32m");

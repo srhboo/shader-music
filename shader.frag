@@ -85,7 +85,7 @@ return  smoothstep( pct-minus, pct, st.y) -
 
 float fbm ( in vec2 _st) {
     float v = 0.0;
-    float a = 0.5;
+    float a = 0.7;
     vec2 shift = vec2(100.0);
     // Rotate to reduce axial bias
     mat2 rot = mat2(cos(0.8), sin(0.4),
@@ -109,7 +109,7 @@ void main() {
 
     // from brownian motion example
     vec2 q = vec2(0.);
-    q.x = fbm( st + 0.00*u_time);
+    q.x = fbm( st + 0.01*u_time);
     q.y = fbm( st + vec2(1.0));
 
     vec2 r = vec2(0.);
