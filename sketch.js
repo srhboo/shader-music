@@ -9,8 +9,17 @@ let perc2b = 0;
 let perc2c = 0;
 let sibeat = 0;
 
+let rAdd = 0;
+let gAdd = 0;
+let bAdd = 0;
+
+const addSets = [
+  { r: 0, g: 0, b: 0 },
+  { r: 0.2, g: 0.3, b: 0.3 },
+];
+
 // these variables keep track of the zoom transition
-let transition1 = 0;
+let transition1 = 1;
 let transition1State = "pre";
 
 let playerState = "intro"; // intro / play / pause
@@ -84,6 +93,11 @@ function draw() {
   // high drone
   musicShader.setUniform("u_sibeat", sibeat);
 
+  // colour diff
+  musicShader.setUniform("u_rAdd", rAdd);
+  musicShader.setUniform("u_gAdd", gAdd);
+  musicShader.setUniform("u_bAdd", bAdd);
+
   // rect gives us some geometry on the screen
   rect(0, 0, width, height);
 
@@ -124,6 +138,8 @@ function draw() {
     if (transition1 <= 0) {
       transition1State = "pre";
       setTimeout(() => {
+        randomizeParts();
+        changeColours();
         Tone.Transport.seconds = 0;
       }, 5000);
     } else {
@@ -135,6 +151,42 @@ function draw() {
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
+}
+
+// returns result from 0 to max - 1
+function getRandomInt(max) {
+  return Math.floor(Math.random() * max);
+}
+
+function changeColours() {
+  const colourAdjustVersion = getRandomInt(addSets.length);
+  const colourAdjust = addSets[colourAdjustVersion];
+  rAdd = colourAdjust.r;
+  gAdd = colourAdjust.g;
+  bAdd = colourAdjust.b;
+}
+
+function randomizeParts() {
+  const version = getRandomInt(partBOptions.length);
+  const bassPartVersion = bassOptions[version];
+  const bassProb = bassOptionProbabilities[version];
+  const partBVersion = partBOptions[version];
+  const partBProb = partBOptionProbabilities[version];
+  const partDVersion = partDOptions[version];
+  part.clear();
+  part.probability = bassProb;
+  bassPartVersion.forEach((ev) => {
+    part.add(ev.time, { note: ev.note, velocity: ev.velocity });
+  });
+  partB.clear();
+  partB.probability = partBProb;
+  partBVersion.forEach((ev) => {
+    partB.add(ev.time, { note: ev.note, velocity: ev.velocity });
+  });
+  partD.clear();
+  partDVersion.forEach((ev) => {
+    partD.add(ev.time, { note: ev.note, velocity: ev.velocity });
+  });
 }
 
 function triggerTransition1() {
@@ -158,7 +210,6 @@ function triggerEnd() {
 function triggerReverse() {
   triggerTransition1Reverse();
   part.start(0);
-  console.log(part.progress);
 }
 
 function mousePressed() {
@@ -294,6 +345,10 @@ const bassOptions = [
     { time: "0:1", note: "E3", velocity: 0.6 },
   ],
   [
+    { time: "0:0", note: "E3", velocity: 1.0 },
+    { time: "0:1", note: "E3", velocity: 0.6 },
+  ],
+  [
     { time: "0:0", note: "A3", velocity: 1.0 },
     { time: "0:2", note: "A3", velocity: 0.6 },
     { time: "0:4", note: "A3", velocity: 0.4 },
@@ -303,28 +358,22 @@ const bassOptions = [
     { time: "0:1", note: "D4", velocity: 0.6 },
   ],
 ];
-const bassOptionProbabilities = [0.7, 0.3];
-const part = new Tone.Part(
-  (time, value) => {
-    synthA.triggerAttackRelease(value.note, "16n", time, value.velocity);
+const bassOptionProbabilities = [0.7, 0.7, 0.3, 0.3];
+const part = new Tone.Part((time, value) => {
+  synthA.triggerAttackRelease(value.note, "16n", time, value.velocity);
 
-    // need to use this for drawing
-    Tone.Draw.schedule(() => {
-      beat = 1;
-      const bar = parseInt(Tone.Transport.position.split(":")[0]);
-      if (bar > 30 && bar < 64 && transition1State === "pre") {
-        // zoom out when near the end of the half
-        triggerTransition1();
-      }
-    }, time);
-  },
-  [
-    { time: "0:0", note: "E3", velocity: 1.0 },
-    { time: "0:1", note: "E3", velocity: 0.6 },
-  ]
-);
+  // need to use this for drawing
+  Tone.Draw.schedule(() => {
+    beat = 1;
+    const bar = parseInt(Tone.Transport.position.split(":")[0]);
+    if (bar > 30 && bar < 64 && transition1State === "pre") {
+      // zoom out when near the end of the half
+      triggerTransition1();
+    }
+  }, time);
+}, bassOptions[0]);
 part.loop = 32;
-part.probability = 0.7;
+part.probability = bassOptionProbabilities[0];
 part.humanize = true;
 part.start(0);
 
@@ -366,25 +415,14 @@ const partBOptions = [
     { time: "0:3:3", note: "D2", velocity: 0.6 },
   ],
 ];
-const partBOptionProbabilities = [0.5, 0.5, 0.3];
+const partBOptionProbabilities = [0.5, 0.5, 0.3, 0.3];
 
-const partB = new Tone.Part(
-  (time, value) => {
-    // the value is an object which contains both the note and the velocity
-    synthB.triggerAttackRelease(value.note, "8n", time, value.velocity);
-  },
-  [
-    { time: "0:0:0", note: "B3", velocity: 0.6 },
-    { time: "0:0:2", note: "A4", velocity: 0.3 },
-    { time: "0:0:3", note: "B4", velocity: 0.5 },
-    { time: "0:1", note: "E#4", velocity: 0.6 },
-    { time: "0:2", note: "B4", velocity: 0.4 },
-    { time: "0:3:1", note: "A4", velocity: 0.4 },
-    { time: "0:3:2", note: "F#4", velocity: 0.6 },
-  ]
-);
+const partB = new Tone.Part((time, value) => {
+  // the value is an object which contains both the note and the velocity
+  synthB.triggerAttackRelease(value.note, "8n", time, value.velocity);
+}, partBOptions[0]);
 partB.loop = 32;
-partB.probability = 0.3;
+partB.probability = partBOptionProbabilities[0];
 partB.humanize = true;
 partB.start(0);
 
@@ -392,6 +430,10 @@ const partC = new Tone.Part(
   (time, value) => {
     // the value is an object which contains both the note and the velocity
     noiseSynth.triggerAttackRelease("16n", time, value.velocity);
+    const bar = parseInt(Tone.Transport.position.split(":")[0]);
+    if (bar > 62) {
+      triggerReverse();
+    }
     Tone.Draw.schedule(() => {
       if (value.note === "C2") {
         perc1 = 1;
@@ -417,26 +459,24 @@ const partC = new Tone.Part(
     { time: "0:1:2", note: "G2", velocity: 0.1 },
   ]
 );
-partC.loop = 32;
+partC.loop = 56;
 partC.probability = 0.3;
 partC.start("32m"); //
 
-const partDOptions = [[{ time: "0:0:0", note: "A4", velocity: 0.6 }]];
+const partDOptions = [
+  [{ time: "0:0:0", note: "A4", velocity: 0.6 }],
+  [{ time: "0:0:0", note: "C3", velocity: 1.0 }],
+  [{ time: "0:0:0", note: "A4", velocity: 0.6 }],
+  [{ time: "0:0:0", note: "C3", velocity: 1.0 }],
+];
 
-const partD = new Tone.Part(
-  (time, value) => {
-    duoSynth.triggerAttackRelease(value.note, "1m", time, value.velocity);
-    const bar = parseInt(Tone.Transport.position.split(":")[0]);
-    if (bar > 62) {
-      triggerReverse();
-    }
-    Tone.Draw.schedule(() => {
-      sibeat = 1;
-    }, time);
-  },
-  [{ time: "0:0:0", note: "C3", velocity: 1.0 }]
-);
-partD.loop = 56;
+const partD = new Tone.Part((time, value) => {
+  duoSynth.triggerAttackRelease(value.note, "1m", time, value.velocity);
+  Tone.Draw.schedule(() => {
+    sibeat = 1;
+  }, time);
+}, partDOptions[0]);
+partD.loop = 40;
 partD.probability = 0.2;
 partD.humanize = true;
 partD.start("32m");
