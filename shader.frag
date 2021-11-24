@@ -19,6 +19,8 @@ uniform float u_rAdd;
 uniform float u_gAdd;
 uniform float u_bAdd;
 
+uniform float u_zoomFactor;
+
 vec2 createGrid( in vec2 st, in vec2 grid, out vec2 indices) {
     
     st *= grid;
@@ -105,7 +107,7 @@ float fbm ( in vec2 _st) {
 void main() {
     vec2 st = gl_FragCoord.xy/u_resolution.xy;
     // this will zoom in when it is time for the transition
-    st *= 0.5 + (19. * u_transition1);
+    st *= u_zoomFactor + (19. * u_transition1);
     st -= vec2(u_transition1 * 12.);
     vec3 color = vec3(0.0);
 
@@ -141,39 +143,33 @@ void main() {
 
     // all rectangles that correspond to the percussive noise in the second half
     float rect = drawRectangle(st, vec2(-1., -5.), vec2(rl, rh)) + drawRectangle(st, vec2(-1., -7.3), vec2(rl, rh)) + drawRectangle(st, vec2(-1., -9.5), vec2(rl, rh));
-    color = mix(color, vec3(0.123, 0.345, 0.567), rect * u_perc1);
+    color = mix(color, vec3(0.123 + u_rAdd, 0.345, 0.567 - u_bAdd), rect * u_perc1);
 
     vec2 rot1b = rotate2D(st, u_time / 6.);
     float rect1b = drawRectangle(rot1b, vec2(-1., -5.), vec2(rl, rh)) + drawRectangle(rot1b, vec2(-1., -7.3), vec2(rl, rh)) + drawRectangle(rot1b, vec2(-1., -9.5), vec2(rl, rh));
-    color = mix(color, vec3(0.123, 0.345, 0.567), rect1b * u_perc1b);
+    color = mix(color, vec3(0.123 + u_rAdd, 0.345, 0.567 - u_bAdd), rect1b * u_perc1b);
 
     vec2 rot1c = rotate2D(st, u_time / 6. + 10.);
     float rect1c = drawRectangle(rot1c, vec2(-1., -5.), vec2(rl, rh)) + drawRectangle(rot1c, vec2(-1., -7.3), vec2(rl, rh)) + drawRectangle(rot1c, vec2(-1., -9.5), vec2(rl, rh));
     color = mix(color, vec3(0.123, 0.345, 0.567), rect1c * u_perc1c);
 
     float rect2 = drawRectangle(st, vec2(-6., -10.), vec2(rl, rh)) + drawRectangle(st, vec2(-6., -12.4), vec2(rl, rh)) + drawRectangle(st, vec2(-6., -15.6), vec2(rl, rh));
-    color = mix(color, vec3(0.4667, 0.0353, 0.0196), rect2 * u_perc2);
+    color = mix(color, vec3(0.4667 - u_rAdd, 0.0353 + u_gAdd, 0.0196), rect2 * u_perc2);
 
     vec2 rot2b = rotate2D(st, u_time / 6. + 10.);
     float rect2b = drawRectangle(rot2b, vec2(-6., -10.), vec2(rl, rh)) + drawRectangle(rot2b, vec2(-6., -12.4), vec2(rl, rh)) + drawRectangle(rot2b, vec2(-6., -15.6), vec2(rl, rh));
-    color = mix(color, vec3(0.4667, 0.0353, 0.0196), rect2b * u_perc2b);
+    color = mix(color, vec3(0.4667- u_rAdd, 0.0353 + u_gAdd, 0.0196), rect2b * u_perc2b);
 
     vec2 rot2c = rotate2D(st, u_time / 6. + 20.);
     float rect2c = drawRectangle(rot2c, vec2(-6., -10.), vec2(rl, rh)) + drawRectangle(rot2c, vec2(-6., -12.4), vec2(rl, rh)) + drawRectangle(rot2c, vec2(-6., -15.6), vec2(rl, rh));
     color = mix(color, vec3(0.4667, 0.0353, 0.0196), rect2c * u_perc2c);
-    vec2 toCenter = vec2(0.5)-st;
-    float angle = atan(toCenter.y,toCenter.x);
-    float radius = length(toCenter)*2.0;
-
-    float z2 = radius * sin(u_time + atan(st.y, st.x)) + sin(st.x-u_time/2. + 30.)*10.5 + cos(st.x * u_time / 4.0);
-    float siplot = plot(st, z2, 28., 28.);
+    
+    float z2 = sin(st.x-u_time/1.5)*7. * cos(st.y + u_time);
+    float siplot = plot(st, z2, 24., 20.);
 
 
-    color = mix(color, vec3(0.01 * st.x+ u_rAdd, 0.0078 * st.y, st.x * 0.05 + u_bAdd), siplot * u_sibeat);
+    color = mix(color, vec3(0.01 * st.x+ u_rAdd, 0.0078 * st.y, st.x * 0.05 - u_bAdd), siplot* u_sibeat);
 
-    // none used below
-    // color = mix(color, vec3(0.0353* st.x * st.y * 0.2, 0.0078* st.x * st.y * 0.2, 0.4667* st.x * st.y * 0.2), siplot);
-    // color = mix(color, vec3(0.002* u_sibeat, 0.003* u_sibeat, 0.004* u_sibeat), z2);
 
     gl_FragColor = vec4(color * f, 1.0);
 }
