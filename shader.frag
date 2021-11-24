@@ -105,7 +105,7 @@ float fbm ( in vec2 _st) {
 void main() {
     vec2 st = gl_FragCoord.xy/u_resolution.xy;
     // this will zoom in when it is time for the transition
-    st *= 1. + (19. * u_transition1);
+    st *= 0.5 + (19. * u_transition1);
     st -= vec2(u_transition1 * 12.);
     vec3 color = vec3(0.0);
 

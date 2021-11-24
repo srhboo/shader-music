@@ -19,7 +19,7 @@ const addSets = [
 ];
 
 // these variables keep track of the zoom transition
-let transition1 = 1;
+let transition1 = 0;
 let transition1State = "pre";
 
 let playerState = "intro"; // intro / play / pause
